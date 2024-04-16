@@ -1,0 +1,22 @@
+#### Register
+POST localhost:8080/auth/register
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "testing@example.com",
+  "password": "password",
+  "firstname": "example name",
+  "lastname":"example"
+}
+
+
+#### Login
+POST localhost:8080/auth/login
+Content-Type: application/json
+Accept: application/json
+
+{
+"email": "testing@example.com",
+"password": "password"
+}
