@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	mysql "github.com/triyasmkom/rest-api-echo/helper"
 	util "github.com/triyasmkom/rest-api-echo/helper"
+	validate "github.com/triyasmkom/rest-api-echo/helper"
 	jwt "github.com/triyasmkom/rest-api-echo/middleware"
 	database "github.com/triyasmkom/rest-api-echo/models/database"
 	"github.com/triyasmkom/rest-api-echo/models/request"
@@ -21,6 +22,17 @@ func Register(context echo.Context) response.Body {
 			Error: "Data kosong",
 		}
 	}
+
+	// validator param
+	if valid := validate.Params(request.ValidateRegister{
+		Firstname: body.Firstname,
+		Lastname: body.Lastname,
+		Email: body.Email,
+		Password: body.Password,
+	}); !valid.Status {
+		return valid
+	}
+
 	data := database.User{
 		Email: body.Email,
 		Password: util.HashPassword(body.Password),
@@ -73,6 +85,14 @@ func Login(context echo.Context) response.Body {
 		}
 	}
 
+	// validator param
+	if valid := validate.Params(request.ValidateLogin{
+		Email: body.Email,
+		Password: body.Password,
+	}); !valid.Status {
+		return valid
+	}
+
 	// get user by email
 	getUserByEmail, err := mysql.Query("SELECT first_name, last_name, password, email FROM auth_user WHERE email = ?", body.Email)
 	if err != nil {
@@ -86,7 +106,6 @@ func Login(context echo.Context) response.Body {
 		}
 	}
 
-	fmt.Println("getUserByEmail: ", getUserByEmail)
 	var user []database.User
 	if err:= json.Unmarshal([]byte(getUserByEmail), &user); err != nil{
 		if util.Debug() {
@@ -109,7 +128,7 @@ func Login(context echo.Context) response.Body {
 		}
 	}
 
-	// Validasi password
+	// Validator password
 	if _, err = util.VerifyPassword(body.Password, user[0].Password); err != nil {
 		if util.Debug() {
 			fmt.Println(err)
