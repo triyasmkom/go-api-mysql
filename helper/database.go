@@ -13,8 +13,13 @@ type Result struct {
 	Rows    []map[string]interface{}
 }
 
+var DB *sql.DB
+
 func GetConnection() *sql.DB {
-	db, err := sql.Open("mysql", "root:12345@tcp(localhost:3307)/test_db")
+	propertyDB := GetPropertyDB()
+	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", propertyDB.Username, propertyDB.Password, propertyDB.Host, propertyDB.Port, propertyDB.Name)
+
+	db, err := sql.Open("mysql", dataSourceName)
 	if err != nil {
 		panic(err)
 		return nil
@@ -117,3 +122,62 @@ func Query(query string, args ...interface{}) (string, error){
 
 	return string(updatedJSON), nil
 }
+
+func Connect(propertyDB PropertyDB) error {
+	// Format string untuk koneksi
+	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", propertyDB.Username, propertyDB.Password, propertyDB.Host, propertyDB.Port, propertyDB.Name)
+
+	// Membuat koneksi database
+	db, err := sql.Open("mysql", dataSourceName)
+	if err != nil {
+		return err
+	}
+
+	// Memeriksa koneksi database
+	err = db.Ping()
+	if err != nil {
+		return err
+	}
+
+	// Menetapkan koneksi sebagai variabel global
+	DB = db
+	fmt.Println("Connected to MySQL database!")
+	return nil
+}
+
+
+// CloseConnection digunakan untuk menutup koneksi database
+func CloseConnection() {
+	if DB != nil {
+		DB.Close()
+	}
+	fmt.Println("Connection to MySQL database closed.")
+}
+
+
+// executeTransaction adalah fungsi bantu untuk melakukan transaksi dengan database MySQL.
+func ExecuteTransaction(db *sql.DB, txFunc func(*sql.Tx) error) (err error) {
+	// Mulai transaksi
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	// Defer fungsi Rollback untuk menjalankannya jika terjadi kesalahan atau panic.
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p) // Panic kembali setelah rollback
+		} else if err != nil {
+			tx.Rollback()
+		} else {
+			err = tx.Commit() // Commit transaksi jika tidak ada kesalahan
+		}
+	}()
+
+	// Panggil fungsi txFunc dengan transaksi yang disediakan sebagai argumen.
+	err = txFunc(tx)
+	return err
+}
+
+

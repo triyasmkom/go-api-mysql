@@ -10,6 +10,13 @@ import (
 	"strconv"
 )
 
+type PropertyDB struct {
+	Username string
+	Password string
+	Host string
+	Port string
+	Name string
+}
 func GetPort() string {
 	port := os.Getenv("PORT")
 
@@ -20,9 +27,20 @@ func GetPort() string {
 	return ":" + port
 }
 
-func LoadEnv()  {
-	err := godotenv.Load()
+func GetPropertyDB() PropertyDB {
+	return PropertyDB{
+		Username: os.Getenv("USERNAME_DB"),
+		Password: os.Getenv("PASSWORD_DB"),
+		Host: os.Getenv("HOST_DB"),
+		Port: os.Getenv("PORT_DB"),
+		Name: os.Getenv("NAME_DB"),
+	}
+}
+
+func LoadEnv(path ...string)  {
+	err := godotenv.Load(path...)
 	if err != nil {
+		fmt.Println("Load Env: ", err)
 		panic("Failed load env file")
 	}
 }
